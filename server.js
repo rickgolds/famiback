@@ -9,10 +9,22 @@ const app = express();
 
 console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
-// Configure CORS to allow only the Vercel frontend domain
+// Configure CORS to allow both Vercel frontend and local development
+const allowedOrigins = [
+  "https://family-event-list.vercel.app", // Replace with your actual Vercel URL
+  "http://localhost:4200", // Allow local development
+];
+
 app.use(
   cors({
-    origin: "https://famiback-production.up.railway.app", // Replace with your Vercel URL
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., mobile apps, curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -50,7 +62,6 @@ const authenticateToken = (req, res, next) => {
     process.env.JWT_SECRET,
     { clockTolerance: 300 },
     (err, user) => {
-      // 300 seconds = 5 minutes tolerance
       if (err) {
         console.error("Błąd weryfikacji tokena:", err.message);
         console.error("Aktualny czas serwera:", new Date().toISOString());
@@ -170,7 +181,7 @@ app.post("/signin", (req, res) => {
           lastname: user.lastname,
         },
         process.env.JWT_SECRET,
-        { expiresIn: "2h" } // Increased to 2 hours for better user experience
+        { expiresIn: "2h" }
       );
       res.json({ token, message: "Zalogowano pomyślnie" });
     }
