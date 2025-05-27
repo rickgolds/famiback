@@ -9,16 +9,14 @@ const app = express();
 
 console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
-// Configure CORS to allow both Vercel frontend and local development
 const allowedOrigins = [
-  "https://family-event-list.vercel.app", // Replace with your actual Vercel URL
-  "http://localhost:4200", // Allow local development
+  "http://localhost:4200",
+  "https://familyfront.vercel.app",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., mobile apps, curl)
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
