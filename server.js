@@ -11,7 +11,7 @@ console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
 app.use(
   cors({
-    origin: ["http://localhost:4200", "http://192.168.1.30:4200"],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -40,14 +40,14 @@ const authenticateToken = (req, res, next) => {
 
   if (!token) {
     console.log("Brak tokena w żądaniu");
-    return res.status(401).json({error: "Brak tokena"});
+    return res.status(401).json({ error: "Brak tokena" });
   }
 
   console.log("Token otrzymany:", token);
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       console.error("Błąd weryfikacji tokena:", err.message);
-      return res.status(403).json({error: "Nieprawidłowy token"});
+      return res.status(403).json({ error: "Nieprawidłowy token" });
     }
     console.log("Zweryfikowany użytkownik:", user);
     req.user = user;
@@ -57,7 +57,8 @@ const authenticateToken = (req, res, next) => {
 
 // Rejestracja (Sign Up)
 app.post("/signup", async (req, res) => {
-  const {name, lastname, email, nickname, password, confirmPassword} = req.body;
+  const { name, lastname, email, nickname, password, confirmPassword } =
+    req.body;
 
   if (
     !name ||
@@ -67,11 +68,11 @@ app.post("/signup", async (req, res) => {
     !password ||
     !confirmPassword
   ) {
-    return res.status(400).json({error: "Wszystkie pola są wymagane"});
+    return res.status(400).json({ error: "Wszystkie pola są wymagane" });
   }
 
   if (password !== confirmPassword) {
-    return res.status(400).json({error: "Hasła nie są identyczne"});
+    return res.status(400).json({ error: "Hasła nie są identyczne" });
   }
 
   try {
@@ -81,14 +82,14 @@ app.post("/signup", async (req, res) => {
       async (err, results) => {
         if (err) {
           console.error("Błąd zapytania SQL (SELECT):", err);
-          return res.status(500).json({error: "Błąd serwera"});
+          return res.status(500).json({ error: "Błąd serwera" });
         }
         if (results.length > 0) {
           if (results.some((user) => user.email === email)) {
-            return res.status(400).json({error: "Email już istnieje"});
+            return res.status(400).json({ error: "Email już istnieje" });
           }
           if (results.some((user) => user.nickname === nickname)) {
-            return res.status(400).json({error: "Nickname już istnieje"});
+            return res.status(400).json({ error: "Nickname już istnieje" });
           }
         }
 
@@ -105,23 +106,23 @@ app.post("/signup", async (req, res) => {
                 details: err.message,
               });
             }
-            res.status(201).json({message: "Użytkownik zarejestrowany"});
+            res.status(201).json({ message: "Użytkownik zarejestrowany" });
           }
         );
       }
     );
   } catch (error) {
     console.error("Błąd ogólny:", error);
-    res.status(500).json({error: "Błąd serwera", details: error.message});
+    res.status(500).json({ error: "Błąd serwera", details: error.message });
   }
 });
 
 // Logowanie (Sign In)
 app.post("/signin", (req, res) => {
-  const {identifier, password} = req.body;
+  const { identifier, password } = req.body;
 
   if (!identifier || !password) {
-    return res.status(400).json({error: "Identyfikator i hasło są wymagane"});
+    return res.status(400).json({ error: "Identyfikator i hasło są wymagane" });
   }
 
   db.query(
@@ -130,12 +131,12 @@ app.post("/signin", (req, res) => {
     async (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       if (results.length === 0) {
         return res
           .status(400)
-          .json({error: "Nieprawidłowy identyfikator lub hasło"});
+          .json({ error: "Nieprawidłowy identyfikator lub hasło" });
       }
 
       const user = results[0];
@@ -144,7 +145,7 @@ app.post("/signin", (req, res) => {
       if (!isValid) {
         return res
           .status(400)
-          .json({error: "Nieprawidłowy identyfikator lub hasło"});
+          .json({ error: "Nieprawidłowy identyfikator lub hasło" });
       }
 
       const token = jwt.sign(
@@ -155,9 +156,9 @@ app.post("/signin", (req, res) => {
           lastname: user.lastname,
         },
         process.env.JWT_SECRET,
-        {expiresIn: "1h"}
+        { expiresIn: "1h" }
       );
-      res.json({token, message: "Zalogowano pomyślnie"});
+      res.json({ token, message: "Zalogowano pomyślnie" });
     }
   );
 });
@@ -169,7 +170,7 @@ app.get("/users", authenticateToken, (req, res) => {
     (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT users):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       res.json(results);
     }
@@ -187,7 +188,7 @@ app.get("/task-lists", authenticateToken, (req, res) => {
     (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT task_lists):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       res.json(results);
     }
@@ -196,11 +197,11 @@ app.get("/task-lists", authenticateToken, (req, res) => {
 
 // Dodaj nową listę zadań
 app.post("/task-lists", authenticateToken, (req, res) => {
-  const {name} = req.body;
+  const { name } = req.body;
   const created_by = req.user.id;
 
   if (!name) {
-    return res.status(400).json({error: "Nazwa listy jest wymagana"});
+    return res.status(400).json({ error: "Nazwa listy jest wymagana" });
   }
 
   db.query(
@@ -209,9 +210,9 @@ app.post("/task-lists", authenticateToken, (req, res) => {
     (err) => {
       if (err) {
         console.error("Błąd zapytania SQL (INSERT task_list):", err);
-        return res.status(500).json({error: "Błąd podczas dodawania listy"});
+        return res.status(500).json({ error: "Błąd podczas dodawania listy" });
       }
-      res.status(201).json({message: "Lista dodana"});
+      res.status(201).json({ message: "Lista dodana" });
     }
   );
 });
@@ -219,10 +220,10 @@ app.post("/task-lists", authenticateToken, (req, res) => {
 // Edytuj nazwę listy
 app.put("/task-lists/:id", authenticateToken, (req, res) => {
   const listId = req.params.id;
-  const {name} = req.body;
+  const { name } = req.body;
 
   if (!name) {
-    return res.status(400).json({error: "Nazwa listy jest wymagana"});
+    return res.status(400).json({ error: "Nazwa listy jest wymagana" });
   }
 
   db.query(
@@ -231,9 +232,9 @@ app.put("/task-lists/:id", authenticateToken, (req, res) => {
     (err) => {
       if (err) {
         console.error("Błąd zapytania SQL (UPDATE task_list):", err);
-        return res.status(500).json({error: "Błąd podczas edycji listy"});
+        return res.status(500).json({ error: "Błąd podczas edycji listy" });
       }
-      res.json({message: "Nazwa listy zaktualizowana"});
+      res.json({ message: "Nazwa listy zaktualizowana" });
     }
   );
 });
@@ -246,7 +247,7 @@ app.delete("/task-lists/:id", authenticateToken, (req, res) => {
   db.query("DELETE FROM tasks WHERE list_id = ?", [listId], (err) => {
     if (err) {
       console.error("Błąd zapytania SQL (DELETE tasks):", err);
-      return res.status(500).json({error: "Błąd podczas usuwania zadań"});
+      return res.status(500).json({ error: "Błąd podczas usuwania zadań" });
     }
 
     // Krok 2: Usuń wszystkie rekordy z list_users powiązane z listą
@@ -255,7 +256,7 @@ app.delete("/task-lists/:id", authenticateToken, (req, res) => {
         console.error("Błąd zapytania SQL (DELETE list_users):", err);
         return res
           .status(500)
-          .json({error: "Błąd podczas usuwania powiązań listy"});
+          .json({ error: "Błąd podczas usuwania powiązań listy" });
       }
 
       // Krok 3: Usuń samą listę
@@ -265,9 +266,11 @@ app.delete("/task-lists/:id", authenticateToken, (req, res) => {
         (err) => {
           if (err) {
             console.error("Błąd zapytania SQL (DELETE task_list):", err);
-            return res.status(500).json({error: "Błąd podczas usuwania listy"});
+            return res
+              .status(500)
+              .json({ error: "Błąd podczas usuwania listy" });
           }
-          res.json({message: "Lista usunięta"});
+          res.json({ message: "Lista usunięta" });
         }
       );
     });
@@ -290,7 +293,7 @@ app.get("/tasks/:listId", authenticateToken, (req, res) => {
     (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT tasks):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       res.json(results);
     }
@@ -299,13 +302,14 @@ app.get("/tasks/:listId", authenticateToken, (req, res) => {
 
 // Dodaj nowe zadanie
 app.post("/tasks", authenticateToken, (req, res) => {
-  const {title, description, assigned_to, list_id, due_date, points} = req.body;
+  const { title, description, assigned_to, list_id, due_date, points } =
+    req.body;
   const created_by = req.user.id;
 
   if (!title || !assigned_to || !list_id) {
     return res
       .status(400)
-      .json({error: "Tytuł, przypisany użytkownik i ID listy są wymagane"});
+      .json({ error: "Tytuł, przypisany użytkownik i ID listy są wymagane" });
   }
 
   // Sprawdź, czy użytkownik assigned_to istnieje
@@ -315,12 +319,12 @@ app.post("/tasks", authenticateToken, (req, res) => {
     (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT user):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       if (results.length === 0) {
         return res
           .status(400)
-          .json({error: "Przypisany użytkownik nie istnieje"});
+          .json({ error: "Przypisany użytkownik nie istnieje" });
       }
 
       db.query(
@@ -329,7 +333,7 @@ app.post("/tasks", authenticateToken, (req, res) => {
         (err, results) => {
           if (err) {
             console.error("Błąd zapytania SQL (SELECT list_users):", err);
-            return res.status(500).json({error: "Błąd serwera"});
+            return res.status(500).json({ error: "Błąd serwera" });
           }
 
           if (results.length === 0) {
@@ -339,7 +343,7 @@ app.post("/tasks", authenticateToken, (req, res) => {
               (err) => {
                 if (err) {
                   console.error("Błąd zapytania SQL (INSERT list_users):", err);
-                  return res.status(500).json({error: "Błąd serwera"});
+                  return res.status(500).json({ error: "Błąd serwera" });
                 }
                 insertTask();
               }
@@ -369,9 +373,9 @@ app.post("/tasks", authenticateToken, (req, res) => {
           console.error("Błąd zapytania SQL (INSERT task):", err);
           return res
             .status(500)
-            .json({error: "Błąd podczas dodawania zadania"});
+            .json({ error: "Błąd podczas dodawania zadania" });
         }
-        res.status(201).json({message: "Zadanie dodane"});
+        res.status(201).json({ message: "Zadanie dodane" });
       }
     );
   }
@@ -380,13 +384,14 @@ app.post("/tasks", authenticateToken, (req, res) => {
 // Aktualizuj zadanie
 app.put("/tasks/:id", authenticateToken, (req, res) => {
   const taskId = req.params.id;
-  const {title, description, status, assigned_to, due_date, points} = req.body;
+  const { title, description, status, assigned_to, due_date, points } =
+    req.body;
 
   // Walidacja wymaganych pól
   if (!title || !assigned_to) {
     return res
       .status(400)
-      .json({error: "Tytuł i przypisany użytkownik są wymagane"});
+      .json({ error: "Tytuł i przypisany użytkownik są wymagane" });
   }
 
   // Sprawdź, czy użytkownik assigned_to istnieje
@@ -396,12 +401,12 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
     (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT user):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       if (results.length === 0) {
         return res
           .status(400)
-          .json({error: "Przypisany użytkownik nie istnieje"});
+          .json({ error: "Przypisany użytkownik nie istnieje" });
       }
 
       // Pobierz bieżący status i punkty zadania
@@ -411,10 +416,10 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
         (err, results) => {
           if (err) {
             console.error("Błąd zapytania SQL (SELECT task):", err);
-            return res.status(500).json({error: "Błąd serwera"});
+            return res.status(500).json({ error: "Błąd serwera" });
           }
           if (results.length === 0) {
-            return res.status(404).json({error: "Zadanie nie istnieje"});
+            return res.status(404).json({ error: "Zadanie nie istnieje" });
           }
 
           const currentTask = results[0];
@@ -464,9 +469,9 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
                       );
                       return res
                         .status(500)
-                        .json({error: "Błąd podczas aktualizacji punktów"});
+                        .json({ error: "Błąd podczas aktualizacji punktów" });
                     }
-                    res.json({message: "Zadanie zaktualizowane"});
+                    res.json({ message: "Zadanie zaktualizowane" });
                   }
                 );
               } else if (wasCompleted && !isCompleted) {
@@ -482,9 +487,9 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
                       );
                       return res
                         .status(500)
-                        .json({error: "Błąd podczas aktualizacji punktów"});
+                        .json({ error: "Błąd podczas aktualizacji punktów" });
                     }
-                    res.json({message: "Zadanie zaktualizowane"});
+                    res.json({ message: "Zadanie zaktualizowane" });
                   }
                 );
               } else if (wasCompleted && newAssignedTo !== previousAssignedTo) {
@@ -500,7 +505,7 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
                       );
                       return res
                         .status(500)
-                        .json({error: "Błąd podczas aktualizacji punktów"});
+                        .json({ error: "Błąd podczas aktualizacji punktów" });
                     }
                     db.query(
                       "UPDATE users SET total_points = total_points + ? WHERE id = ?",
@@ -513,15 +518,17 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
                           );
                           return res
                             .status(500)
-                            .json({error: "Błąd podczas aktualizacji punktów"});
+                            .json({
+                              error: "Błąd podczas aktualizacji punktów",
+                            });
                         }
-                        res.json({message: "Zadanie zaktualizowane"});
+                        res.json({ message: "Zadanie zaktualizowane" });
                       }
                     );
                   }
                 );
               } else {
-                res.json({message: "Zadanie zaktualizowane"});
+                res.json({ message: "Zadanie zaktualizowane" });
               }
             }
           );
@@ -542,10 +549,10 @@ app.delete("/tasks/:id", authenticateToken, (req, res) => {
     (err, results) => {
       if (err) {
         console.error("Błąd zapytania SQL (SELECT task):", err);
-        return res.status(500).json({error: "Błąd serwera"});
+        return res.status(500).json({ error: "Błąd serwera" });
       }
       if (results.length === 0) {
-        return res.status(404).json({error: "Zadanie nie istnieje"});
+        return res.status(404).json({ error: "Zadanie nie istnieje" });
       }
 
       const task = results[0];
@@ -559,7 +566,7 @@ app.delete("/tasks/:id", authenticateToken, (req, res) => {
               console.error("Błąd zapytania SQL (UPDATE user points):", err);
               return res
                 .status(500)
-                .json({error: "Błąd podczas aktualizacji punktów"});
+                .json({ error: "Błąd podczas aktualizacji punktów" });
             }
             deleteTask();
           }
@@ -574,9 +581,9 @@ app.delete("/tasks/:id", authenticateToken, (req, res) => {
             console.error("Błąd zapytania SQL (DELETE task):", err);
             return res
               .status(500)
-              .json({error: "Błąd podczas usuwania zadania"});
+              .json({ error: "Błąd podczas usuwania zadania" });
           }
-          res.json({message: "Zadanie usunięte"});
+          res.json({ message: "Zadanie usunięte" });
         });
       }
     }
