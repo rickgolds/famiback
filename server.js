@@ -516,11 +516,9 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
                             "Błąd zapytania SQL (UPDATE user points - new):",
                             err
                           );
-                          return res
-                            .status(500)
-                            .json({
-                              error: "Błąd podczas aktualizacji punktów",
-                            });
+                          return res.status(500).json({
+                            error: "Błąd podczas aktualizacji punktów",
+                          });
                         }
                         res.json({ message: "Zadanie zaktualizowane" });
                       }
@@ -536,6 +534,14 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
       );
     }
   );
+});
+
+app.get("/time", (req, res) => {
+  const serverTime = new Date();
+  res.json({
+    serverTime: serverTime.toISOString(),
+    unixTimestamp: Math.floor(serverTime.getTime() / 1000),
+  });
 });
 
 // Usuń zadanie
