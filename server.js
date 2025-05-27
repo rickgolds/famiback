@@ -9,10 +9,11 @@ const app = express();
 
 console.log("JWT_SECRET:", process.env.JWT_SECRET);
 
+// Configure CORS to allow only the Vercel frontend domain
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: "https://family-event-list.vercel.app", // Replace with your Vercel URL
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -33,7 +34,7 @@ db.connect((err) => {
   console.log("Połączono z MySQL");
 });
 
-// Middleware do weryfikacji tokena JWT
+// Middleware do weryfikacji tokena JWT z tolerancją zegara
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -44,15 +45,28 @@ const authenticateToken = (req, res, next) => {
   }
 
   console.log("Token otrzymany:", token);
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.error("Błąd weryfikacji tokena:", err.message);
-      return res.status(403).json({ error: "Nieprawidłowy token" });
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET,
+    { clockTolerance: 300 },
+    (err, user) => {
+      // 300 seconds = 5 minutes tolerance
+      if (err) {
+        console.error("Błąd weryfikacji tokena:", err.message);
+        console.error("Aktualny czas serwera:", new Date().toISOString());
+        console.error(
+          "Token exp:",
+          new Date(jwt.decode(token).exp * 1000).toISOString()
+        );
+        return res
+          .status(403)
+          .json({ error: "Nieprawidłowy token", details: err.message });
+      }
+      console.log("Zweryfikowany użytkownik:", user);
+      req.user = user;
+      next();
     }
-    console.log("Zweryfikowany użytkownik:", user);
-    req.user = user;
-    next();
-  });
+  );
 };
 
 // Rejestracja (Sign Up)
@@ -156,7 +170,7 @@ app.post("/signin", (req, res) => {
           lastname: user.lastname,
         },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "2h" } // Increased to 2 hours for better user experience
       );
       res.json({ token, message: "Zalogowano pomyślnie" });
     }
@@ -536,14 +550,6 @@ app.put("/tasks/:id", authenticateToken, (req, res) => {
   );
 });
 
-app.get("/time", (req, res) => {
-  const serverTime = new Date();
-  res.json({
-    serverTime: serverTime.toISOString(),
-    unixTimestamp: Math.floor(serverTime.getTime() / 1000),
-  });
-});
-
 // Usuń zadanie
 app.delete("/tasks/:id", authenticateToken, (req, res) => {
   const taskId = req.params.id;
@@ -596,5 +602,15 @@ app.delete("/tasks/:id", authenticateToken, (req, res) => {
   );
 });
 
-const PORT = process.env.PORT || 3000;
+// Endpoint do debugowania czasu serwera
+app.get("/time", (req, res) => {
+  const serverTime = new Date();
+  res.json({
+    serverTime: serverTime.toISOString(),
+    unixTimestamp: Math.floor(serverTime.getTime() / 1000),
+  });
+});
+
+// Ustaw port z zmiennej środowiskowej (Railway ustawia PORT)
+const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Serwer działa na porcie ${PORT}`));
