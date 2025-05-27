@@ -12,7 +12,7 @@ console.log("JWT_SECRET:", process.env.JWT_SECRET);
 // Configure CORS to allow only the Vercel frontend domain
 app.use(
   cors({
-    origin: "https://family-event-list.vercel.app", // Replace with your Vercel URL
+    origin: "https://famiback-production.up.railway.app", // Replace with your Vercel URL
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
